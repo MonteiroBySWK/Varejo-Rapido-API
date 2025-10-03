@@ -70,6 +70,33 @@ public class VendaController {
             
         return vendaRepository.findAll(pageable);
     }
+    
+    // Pesquisa unificada - busca por nome de cliente OU nome de produto
+    @GetMapping("/buscar")
+    public List<Venda> buscar(@RequestParam String query) {
+        List<Venda> vendas = new ArrayList<>();
+        
+        // Buscar vendas por nome de cliente
+        List<Cliente> clientesEncontrados = clienteRepository.findByNomeContainingIgnoreCase(query);
+        for (Cliente cliente : clientesEncontrados) {
+            List<Venda> vendasDoCliente = vendaRepository.findByCliente(cliente);
+            vendas.addAll(vendasDoCliente);
+        }
+        
+        // Buscar vendas por nome de produto
+        List<Produto> produtosEncontrados = produtoRepository.findByNomeContainingIgnoreCase(query);
+        for (Produto produto : produtosEncontrados) {
+            List<Venda> vendasDoProduto = vendaRepository.findByProduto(produto);
+            // Evitar duplicatas
+            for (Venda venda : vendasDoProduto) {
+                if (!vendas.contains(venda)) {
+                    vendas.add(venda);
+                }
+            }
+        }
+        
+        return vendas;
+    }
 
     // Forçar reload do arquivo
     @PostMapping("/reload")
