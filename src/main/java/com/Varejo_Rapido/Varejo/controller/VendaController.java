@@ -4,11 +4,15 @@ import com.Varejo_Rapido.Varejo.model.Cliente;
 import com.Varejo_Rapido.Varejo.model.Produto;
 import com.Varejo_Rapido.Varejo.model.Venda;
 import com.Varejo_Rapido.Varejo.model.dto.ItemRequestBody;
+
 import com.Varejo_Rapido.Varejo.model.dto.VendaResponse;
 import com.Varejo_Rapido.Varejo.repository.ClienteRepository;
 import com.Varejo_Rapido.Varejo.repository.ProdutoRepository;
 import com.Varejo_Rapido.Varejo.repository.VendaRepository;
 import com.Varejo_Rapido.Varejo.service.DatParserService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,10 +39,36 @@ public class VendaController {
         this.clienteRepository = clienteRepository;
     }
 
-    // Endpoint principal
+    // Endpoint principal - lista todas as vendas
     @GetMapping
     public List<Venda> listar() {
         return vendaRepository.findAll();
+    }
+    
+    // Endpoint com paginação (para quando houver muitos dados)
+    @GetMapping("/paginado")
+    public Page<Venda> listarPaginado(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+        
+        // Validar campo de ordenação para evitar erros
+        String[] validSortFields = {"id", "dataVenda", "quantidade", "valorUnitario", "valorTotalVenda"};
+        boolean isValidField = java.util.Arrays.asList(validSortFields).contains(sortBy);
+        if (!isValidField) {
+            sortBy = "id"; // Default seguro
+        }
+        
+        org.springframework.data.domain.Sort.Direction direction = 
+            sortDir.equalsIgnoreCase("desc") ? 
+            org.springframework.data.domain.Sort.Direction.DESC : 
+            org.springframework.data.domain.Sort.Direction.ASC;
+            
+        Pageable pageable = org.springframework.data.domain.PageRequest.of(
+            page, size, org.springframework.data.domain.Sort.by(direction, sortBy));
+            
+        return vendaRepository.findAll(pageable);
     }
 
     // Forçar reload do arquivo
